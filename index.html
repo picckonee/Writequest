@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>WriteQuest：寫文遊戲化</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#111111">
+  <style>
+    :root{--bg:#0f1115;--card:#171923;--muted:#8a8f98;--acc:#27c93f;--danger:#ff5555;--text:#e2e8f0;}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{margin:0;background:var(--bg);font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "PingFang TC","Noto Sans TC",sans-serif;color:var(--text);}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0f1115,rgba(15,17,21,0.85));backdrop-filter: blur(6px);padding:12px 16px;border-bottom:1px solid #222;}
+    h1{font-size:18px;margin:0}
+    main{padding:16px;display:grid;gap:12px}
+    .card{background:var(--card);border:1px solid #242635;border-radius:14px;padding:14px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    button{background:#22273a;border:1px solid #2e334b;border-radius:10px;color:var(--text);padding:10px 12px;font-size:15px}
+    button.primary{background: #1f6feb;border-color:#2b74ff}
+    button.ghost{background:transparent;border-color:#333;color:#cbd5e1}
+    input,select,textarea{width:100%;background:#10131b;border:1px solid #2a3045;border-radius:10px;color:var(--text);padding:10px;font-size:15px}
+    textarea{min-height:160px;resize:vertical}
+    .muted{color:var(--muted);font-size:13px}
+    .bar{height:10px;background:#0e0f14;border-radius:6px;border:1px solid #2a3045;overflow:hidden}
+    .bar>div{height:100%;background:linear-gradient(90deg,#2b74ff,#27c93f);width:0%}
+    .kpi{display:flex;gap:10px}
+    .kpi div{flex:1;background:#10131b;border:1px solid #252b40;border-radius:12px;padding:10px;text-align:center}
+    .kpi strong{font-size:18px;display:block}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:#13221a;border:1px solid #23492e;color:#b7ffca;border-radius:999px;padding:6px 10px;margin:4px 6px 0 0;font-size:13px}
+    .danger{color:#ffb3b3}
+    .small{font-size:12px}
+    .list{display:grid;gap:10px}
+    .list .item{display:flex;justify-content:space-between;align-items:center;background:#10131b;border:1px solid #252b40;border-radius:12px;padding:10px}
+    .link{color:#8ab4ff;text-decoration:underline;text-underline-offset:3px}
+    .spacer{height:8px}
+    .pill{padding:6px 10px;border-radius:999px;background:#1b1f2e;border:1px solid #30395d;font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WriteQuest — 寫文遊戲化</h1>
+    <div class="muted small">離線可用．資料存於本機．可匯出備份</div>
+  </header>
+  <main>
+    <section class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="muted small">角色</div>
+          <div id="roleName" style="font-weight:600;font-size:16px">文學見習生 Lv.<span id="lvl">1</span></div>
+        </div>
+        <div class="kpi">
+          <div><div class="small muted">EXP</div><strong id="xp">0</strong></div>
+          <div><div class="small muted">總字數</div><strong id="totalWords">0</strong></div>
+          <div><div class="small muted">連續天數</div><strong id="streak">0</strong></div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="muted small">等級進度</div>
+      <div class="bar"><div id="xpBar"></div></div>
+      <div class="small muted" id="xpNote"></div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <div>
+          <div class="muted small">今日任務</div>
+          <div style="font-weight:600">至少 150 字（每 100 字 +10 EXP）</div>
+        </div>
+        <div class="row">
+          <select id="genre">
+            <option value="隨筆">隨筆</option>
+            <option value="分析">分析</option>
+            <option value="影評">影評</option>
+            <option value="小說">小說</option>
+            <option value="日記">日記</option>
+          </select>
+          <button id="roll" class="ghost">抽靈感題目</button>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <textarea id="entry" placeholder="開始寫吧。完成後點『提交今日』。"></textarea>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="muted">字數：<span id="count">0</span></div>
+        <div class="row">
+          <button id="saveDraft" class="ghost">暫存</button>
+          <button id="submit" class="primary">提交今日</button>
+        </div>
+      </div>
+      <div class="small muted">提示：超過 1000 字可解鎖「長篇勇者」徽章；連續 7 / 14 / 30 天有對應徽章。</div>
+    </section>
+
+    <section class="card">
+      <div class="muted small">徽章</div>
+      <div id="badges"></div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="muted small">歷史紀錄（與自己競賽）</div>
+          <div class="small muted">點開可查看當日條目</div>
+        </div>
+        <div class="row">
+          <button id="exportBtn" class="ghost">匯出 JSON</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none">
+          <button id="importBtn" class="ghost">匯入</button>
+          <button id="resetBtn" class="ghost danger">重置</button>
+        </div>
+      </div>
+      <div class="list" id="history"></div>
+    </section>
+
+    <section class="card">
+      <div class="muted small">系統說明</div>
+      <ul class="small">
+        <li>EXP：每 100 字 +10；每日任務完成另給 +30。</li>
+        <li>等級：Lv = floor( sqrt( EXP / 50 ) ) + 1；升級門檻逐步提高。</li>
+        <li>徽章：7/14/30 日連續、單篇 1000 字、嘗試 4 種不同文體、當月達成 20 天等。</li>
+        <li>資料只存在你的瀏覽器（localStorage）。建議定期「匯出 JSON」備份。</li>
+        <li>可安裝為桌面 App（PWA）。</li>
+      </ul>
+    </section>
+  </main>
+
+<script>
+// ==== Utilities & Storage ====
+const $ = (sel)=>document.querySelector(sel);
+const todayKey = ()=> new Date().toISOString().slice(0,10);
+const LSKEY = 'writequest:v1';
+
+const defaultState = {
+  profile:{name:'文學見習生'},
+  xp:0,
+  totalWords:0,
+  entries:{}, // date -> {text, words, genre}
+  badges:[],
+  streak:0,
+  lastDate:null,
+  genresUsed:{} // monthKey -> Set
+};
+
+let S = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(LSKEY);
+    if(!raw) return structuredClone(defaultState);
+    const obj = JSON.parse(raw);
+    return Object.assign(structuredClone(defaultState), obj);
+  }catch(e){
+    console.error(e);
+    return structuredClone(defaultState);
+  }
+}
+function save(){
+  localStorage.setItem(LSKEY, JSON.stringify(S));
+  render();
+}
+
+// ==== XP & Level ====
+function xpForLevel(lv){ return (lv-1)**2 * 50; } // inverse of level formula approx
+function currentLevel(xp){
+  // lv such that xpForLevel(lv) <= xp < xpForLevel(lv+1)
+  let lv=1;
+  while(xp >= xpForLevel(lv+1)) lv++;
+  return lv;
+}
+
+// ==== Streak ====
+function dateDiffDays(a,b){ // a,b in 'YYYY-MM-DD'
+  const da = new Date(a+"T00:00:00Z");
+  const db = new Date(b+"T00:00:00Z");
+  return Math.round((db-da)/(1000*60*60*24));
+}
+function updateStreak(submitDate){
+  if(!S.lastDate){ S.streak = 1; }
+  else{
+    const diff = dateDiffDays(S.lastDate, submitDate);
+    if(diff === 1) S.streak += 1;
+    else if(diff === 0) { /* same day */ }
+    else S.streak = 1;
+  }
+  S.lastDate = submitDate;
+}
+
+// ==== Badges ====
+function hasBadge(code){ return S.badges.includes(code); }
+function award(code){
+  if(!hasBadge(code)){ S.badges.push(code); toast('解鎖徽章：'+badgeMeta[code].name); }
+}
+const badgeMeta = {
+  streak7:{name:'熬過新手村', desc:'連續 7 天完成每日任務'},
+  streak14:{name:'持續者之證', desc:'連續 14 天完成每日任務'},
+  streak30:{name:'恆毅之印', desc:'連續 30 天完成每日任務'},
+  long1000:{name:'長篇勇者', desc:'單篇 1000 字以上'},
+  genres4:{name:'多面手', desc:'本月嘗試 4 種不同文體'},
+  month20:{name:'勤奮之月', desc:'當月完成 20 天每日任務'}
+};
+
+// ==== Prompts ====
+const prompts = [
+ '寫一段完全不用「是」字的短文。',
+ '描述今天最想按暫停的一刻。',
+ '以「如果我只能保留一個習慣」為題。',
+ '寫一封給三年後自己的信（200 字內）。',
+ '把一個平凡物品寫得像傳家寶。',
+ '用三個鏡頭描述一個場景（影像式寫法）。',
+ '把今天的情緒擬人化，給它一個任務。',
+ '用「我本以為…結果…」開頭寫 5 句。',
+ '用對話寫出兩人的誤會，限制 150–250 字。'
+];
+
+// ==== UI hooks ====
+const countEl = $('#count');
+const entry = $('#entry');
+const genreSel = $('#genre');
+
+entry.addEventListener('input',()=>{
+  const words = entry.value.trim().length;
+  countEl.textContent = words;
+  localStorage.setItem('writequest:draft', JSON.stringify({text:entry.value, genre: genreSel.value}));
+});
+
+$('#saveDraft').addEventListener('click',()=>{
+  localStorage.setItem('writequest:draft', JSON.stringify({text:entry.value, genre: genreSel.value}));
+  toast('已暫存');
+});
+const draftRaw = localStorage.getItem('writequest:draft');
+if(draftRaw){
+  try{ const d = JSON.parse(draftRaw); entry.value = d.text || ''; genreSel.value = d.genre || '隨筆'; countEl.textContent = entry.value.trim().length; }catch{}
+}
+
+$('#roll').addEventListener('click',()=>{
+  const p = prompts[Math.floor(Math.random()*prompts.length)];
+  entry.placeholder = p;
+});
+
+$('#submit').addEventListener('click',()=>{
+  const text = entry.value.trim();
+  const words = text.length;
+  if(words < 1){ toast('至少先寫幾個字吧'); return; }
+  const date = todayKey();
+  const already = S.entries[date];
+  if(already){ if(!confirm('今天已提交，覆蓋嗎？')) return; }
+
+  // Save entry
+  S.entries[date] = {text, words, genre: genreSel.value, ts: Date.now()};
+  S.totalWords += words - (already? already.words: 0);
+
+  // XP: 10 per 100 chars, daily bonus 30 if >=150
+  const gained = Math.floor(words/100)*10 + (words>=150?30:0);
+  S.xp += gained - (already? already._gained||0 : 0);
+  S.entries[date]._gained = gained;
+
+  // streak
+  updateStreak(date);
+
+  // badges
+  if(words >= 1000) award('long1000');
+  if(S.streak >= 7) award('streak7');
+  if(S.streak >= 14) award('streak14');
+  if(S.streak >= 30) award('streak30');
+
+  // genres diversity per month
+  const monthKey = date.slice(0,7);
+  if(!S.genresUsed[monthKey]) S.genresUsed[monthKey] = {};
+  S.genresUsed[monthKey][genreSel.value] = true;
+  const genresCount = Object.keys(S.genresUsed[monthKey]).length;
+  if(genresCount >= 4) award('genres4');
+
+  // month 20 days badge
+  const monthCount = Object.keys(S.entries).filter(d => d.startsWith(monthKey)).length;
+  if(monthCount >= 20) award('month20');
+
+  save();
+  localStorage.removeItem('writequest:draft');
+  entry.value = ''; countEl.textContent = 0;
+  toast(`已提交：+${gained} EXP`);
+});
+
+$('#exportBtn').addEventListener('click',()=>{
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'writequest-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+$('#importBtn').addEventListener('click',()=>$('#importFile').click());
+$('#importFile').addEventListener('change',(ev)=>{
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || !data.entries) throw new Error('格式不符');
+      S = Object.assign(structuredClone(defaultState), data);
+      save();
+      toast('匯入成功');
+    }catch(e){
+      alert('匯入失敗：' + e.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+$('#resetBtn').addEventListener('click',()=>{
+  if(confirm('確定要清空所有資料嗎？此動作不可逆。')){
+    S = structuredClone(defaultState);
+    save();
+  }
+});
+
+function render(){
+  // Header KPIs
+  const lvl = currentLevel(S.xp);
+  $('#lvl').textContent = lvl;
+  $('#xp').textContent = S.xp;
+  $('#totalWords').textContent = S.totalWords;
+  $('#streak').textContent = S.streak;
+
+  // XP bar
+  const cur = S.xp - xpForLevel(lvl);
+  const next = xpForLevel(lvl+1) - xpForLevel(lvl);
+  const pct = Math.max(0, Math.min(100, Math.floor((cur/next)*100)));
+  $('#xpBar').style.width = pct + '%';
+  $('#xpNote').textContent = `距離 Lv.${lvl+1} 還需 ${next-cur} EXP`;
+
+  // Badges
+  const box = $('#badges'); box.innerHTML='';
+  const all = Object.keys(badgeMeta);
+  all.forEach(code=>{
+    const owned = hasBadge(code);
+    const el = document.createElement('span');
+    el.className = 'badge';
+    el.style.opacity = owned?1:0.35;
+    el.textContent = (owned?'🏅 ':'🔒 ') + badgeMeta[code].name;
+    el.title = badgeMeta[code].desc;
+    box.appendChild(el);
+  });
+
+  // History
+  const hist = $('#history'); hist.innerHTML='';
+  const dates = Object.keys(S.entries).sort().reverse();
+  dates.forEach(d=>{
+    const it = S.entries[d];
+    const div = document.createElement('div');
+    div.className = 'item';
+    const left = document.createElement('div');
+    left.innerHTML = `<strong>${d}</strong> <span class="pill">${it.genre}</span> <span class="muted small">${it.words} 字</span>`;
+    const right = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.textContent = '查看';
+    btn.onclick = ()=>{
+      alert(`${d}｜${it.genre}\n字數：${it.words}\n\n${it.text}`);
+    };
+    right.appendChild(btn);
+    div.appendChild(left); div.appendChild(right);
+    hist.appendChild(div);
+  });
+}
+function toast(msg){
+  const div = document.createElement('div');
+  div.textContent = msg;
+  div.style.position='fixed'; div.style.bottom='20px'; div.style.left='50%'; div.style.transform='translateX(-50%)';
+  div.style.background='#1f6feb'; div.style.color='white'; div.style.padding='10px 14px'; div.style.borderRadius='10px'; div.style.boxShadow='0 8px 20px rgba(0,0,0,.35)';
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(),1800);
+}
+render();
+
+// PWA
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./service-worker.js');
+  });
+}
+</script>
+</body>
+</html>
