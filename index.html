@@ -69,10 +69,10 @@
         <div class="row">
           <select id="genre">
             <option value="隨筆">隨筆</option>
+            <option value="分析">分析</option>
+            <option value="影評">影評</option>
             <option value="小說">小說</option>
-            <option value="詩">詩</option>
-            <option value="劇本">劇本</option>
-            <option value="大綱">大綱</option>
+            <option value="日記">日記</option>
           </select>
           <button id="roll" class="ghost">抽靈感題目</button>
         </div>
@@ -133,7 +133,7 @@ const defaultState = {
   xp:0,
   totalWords:0,
   entries:{}, // date -> {text, words, genre}
-  badges:{},
+  badges:[],
   streak:0,
   lastDate:null,
   genresUsed:{} // monthKey -> Set
@@ -183,62 +183,31 @@ function updateStreak(submitDate){
 }
 
 // ==== Badges ====
-function hasBadge(code){ return !!S.badges[code]; }
+function hasBadge(code){ return S.badges.includes(code); }
 function award(code){
-  if(!hasBadge(code)){ S.badges[code] = new Date().toISOString(); toast('解鎖徽章：'+badgeMeta[code].name); }
+  if(!hasBadge(code)){ S.badges.push(code); toast('解鎖徽章：'+badgeMeta[code].name); }
 }
 const badgeMeta = {
-  firstPost:{name:'第一步', desc:'完成第一篇提交', how:'首次成功提交一篇作品。'},
-  words500:{name:'熱身完成', desc:'單篇 500 字以上', how:'單篇字數達 500。'},
-  long1000:{name:'長篇勇者', desc:'單篇 1000 字以上', how:'單篇字數達 1000。'},
-  streak3:{name:'連續 3 天', desc:'連續 3 天每日任務', how:'連續 3 天皆有提交。'},
-  streak7:{name:'熬過新手村', desc:'連續 7 天每日任務', how:'連續 7 天皆有提交。'},
-  streak14:{name:'持續者之證', desc:'連續 14 天每日任務', how:'連續 14 天皆有提交。'},
-  streak30:{name:'恆毅之印', desc:'連續 30 天每日任務', how:'連續 30 天皆有提交。'},
-  genres4:{name:'多面手', desc:'本月嘗試 4 種不同文體', how:'同一個月內嘗試至少 4 種不同分類。'},
-  month20:{name:'勤奮之月', desc:'當月完成 20 天每日任務', how:'同一個月內提交 20 天。'},
-  firstPoem:{name:'詩的起點', desc:'首次以詩提交', how:'第一篇分類為「詩」的提交。'},
-  firstScript:{name:'幕啟', desc:'首次以劇本提交', how:'第一篇分類為「劇本」的提交。'},
-  firstOutline:{name:'藍圖誕生', desc:'首次以大綱提交', how:'第一篇分類為「大綱」的提交。'},
-  earlyBird:{name:'清晨寫手', desc:'05:00–07:00 提交', how:'在 05:00–07:00 之間提交作品。'},
-  nightOwl:{name:'深夜寫手', desc:'23:00–02:00 提交', how:'在 23:00–02:00 之間提交作品。'}
+  streak7:{name:'熬過新手村', desc:'連續 7 天完成每日任務'},
+  streak14:{name:'持續者之證', desc:'連續 14 天完成每日任務'},
+  streak30:{name:'恆毅之印', desc:'連續 30 天完成每日任務'},
+  long1000:{name:'長篇勇者', desc:'單篇 1000 字以上'},
+  genres4:{name:'多面手', desc:'本月嘗試 4 種不同文體'},
+  month20:{name:'勤奮之月', desc:'當月完成 20 天每日任務'}
 };
 
 // ==== Prompts ====
 const prompts = [
- '用三句話寫一段極短篇','描述一個只在夢裡出現的房間','把「雨」擬人化，寫它的一天',
- '十年後的你寄信給現在的你','把某種味道寫成一段畫面','用對話呈現兩個人錯身而過',
- '從物品視角寫故事：一支筆','把童年一個場景改寫成詩','形容「安靜」到讓讀者聽見聲音',
- '只有兩個角色：一人說真話、一人說謊','把「遺失」當作開端','用方言寫一段對話',
- '以「門」為主角寫劇本開場','把瑣事寫成史詩口吻','從終點開始講一個故事',
- '把夢到的顏色寫成詩','把「等待」拆成三個視角','把對話藏在大綱節點裡',
- '用一個比喻貫穿全文','描寫一個城市的嗅覺地圖','把「失而復得」寫成三幕劇',
- '寫一個只存在五分鐘的地方','以「清晨四點」展開','把「鍵盤敲擊聲」寫成節奏',
- '三道具完成一場戲：雨傘/車票/收據','讓角色與「另一個自己」對話','寫給未來觀眾的舞台指示',
- '清單體完成 200 字短文','擬定觀點文大綱（支持/反對）','把「拖延」寫成童話',
- '把手機裡的一張照片寫成短文','把「藍色」寫出溫度','以「如果沒遇見你」為題寫一首詩',
- '把「夜行的公車」寫成序章','寫一段只用問句組成的段落','把「失眠」拆成三個意象'
+ '寫一段完全不用「是」字的短文。',
+ '描述今天最想按暫停的一刻。',
+ '以「如果我只能保留一個習慣」為題。',
+ '寫一封給三年後自己的信（200 字內）。',
+ '把一個平凡物品寫得像傳家寶。',
+ '用三個鏡頭描述一個場景（影像式寫法）。',
+ '把今天的情緒擬人化，給它一個任務。',
+ '用「我本以為…結果…」開頭寫 5 句。',
+ '用對話寫出兩人的誤會，限制 150–250 字。'
 ];
-
-// ==== Prompt Deck (no-repeat) ====
-const DECK_KEY = 'writequest:deck';
-function getAllPrompts(){ return Array.from(new Set(prompts)); }
-function buildDeck(){
-  const a = getAllPrompts().slice();
-  for(let i=a.length-1;i>0;i--){ const j = (Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; }
-  return a;
-}
-function loadDeck(){ try{ return JSON.parse(localStorage.getItem(DECK_KEY)||'{}'); }catch{ return {}; } }
-function saveDeck(st){ localStorage.setItem(DECK_KEY, JSON.stringify(st)); }
-function drawPrompt(){
-  let st = loadDeck();
-  if(!Array.isArray(st.deck) || st.deck.length===0){ st.deck = buildDeck(); }
-  const p = st.deck.pop(); st.current = p; saveDeck(st);
-  return p;
-}
-// Restore last drawn
-(function(){ const st=loadDeck(); if(st.current){ entry.placeholder=st.current; } })();
-
 
 // ==== UI hooks ====
 const countEl = $('#count');
@@ -261,7 +230,7 @@ if(draftRaw){
 }
 
 $('#roll').addEventListener('click',()=>{
-  const p = drawPrompt();
+  const p = prompts[Math.floor(Math.random()*prompts.length)];
   entry.placeholder = p;
 });
 
@@ -274,8 +243,7 @@ $('#submit').addEventListener('click',()=>{
   if(already){ if(!confirm('今天已提交，覆蓋嗎？')) return; }
 
   // Save entry
-  const safeGenre = (['分析','影評','日記'].includes(genreSel.value)?'隨筆':genreSel.value);
-  S.entries[date] = {text, words, genre: safeGenre, ts: Date.now()};
+  S.entries[date] = {text, words, genre: genreSel.value, ts: Date.now()};
   S.totalWords += words - (already? already.words: 0);
 
   // XP: 10 per 100 chars, daily bonus 30 if >=150
@@ -286,25 +254,11 @@ $('#submit').addEventListener('click',()=>{
   // streak
   updateStreak(date);
 
-  // badges (expanded)
-  if(Object.keys(S.entries).length===1) award('firstPost');
-  if(words>=500) award('words500');
-  if(words>=1000) award('long1000');
-  if(S.streak>=3) award('streak3');
-  if(S.streak>=7) award('streak7');
-  if(S.streak>=14) award('streak14');
-  if(S.streak>=30) award('streak30');
-  // first-by-genre
-  const prev = Object.values(S.entries).filter(e=>e!==S.entries[date]);
-  if(!prev.some(e=>e.genre===safeGenre)){
-    if(safeGenre==='詩') award('firstPoem');
-    if(safeGenre==='劇本') award('firstScript');
-    if(safeGenre==='大綱') award('firstOutline');
-  }
-  // time-based
-  const hour=new Date().getHours();
-  if(hour>=5 && hour<7) award('earlyBird');
-  if(hour>=23 || hour<2) award('nightOwl');
+  // badges
+  if(words >= 1000) award('long1000');
+  if(S.streak >= 7) award('streak7');
+  if(S.streak >= 14) award('streak14');
+  if(S.streak >= 30) award('streak30');
 
   // genres diversity per month
   const monthKey = date.slice(0,7);
@@ -383,12 +337,6 @@ function render(){
     el.style.opacity = owned?1:0.35;
     el.textContent = (owned?'🏅 ':'🔒 ') + badgeMeta[code].name;
     el.title = badgeMeta[code].desc;
-    el.style.cursor='pointer';
-    el.addEventListener('click',()=>{
-      const meta = badgeMeta[code];
-      const date = S.badges[code]? new Date(S.badges[code]).toLocaleString():'—';
-      alert(`${meta.name}\n\n狀態：${owned?'已解鎖':'尚未解鎖'}\n解鎖方式：${meta.how||meta.desc}\n解鎖日期：${date}`);
-    });
     box.appendChild(el);
   });
 
@@ -421,8 +369,6 @@ function toast(msg){
   setTimeout(()=>div.remove(),1800);
 }
 render();
-// migrate old badges array -> object with dates
-if(Array.isArray(S.badges)){ const o={}; const now=new Date().toISOString(); S.badges.forEach(c=>o[c]=now); S.badges=o; save(); }
 
 // PWA
 if('serviceWorker' in navigator){
