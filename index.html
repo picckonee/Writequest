@@ -248,11 +248,11 @@ const genreSel = $('#genre');
 entry.addEventListener('input',()=>{
   const words = entry.value.trim().length;
   countEl.textContent = words;
-  localStorage.setItem('writequest:draft', JSON.stringify({text:entry.value, genre: (['分析','影評','日記'].includes(genreSel.value)?'隨筆':genreSel.value)}));
+  localStorage.setItem('writequest:draft', JSON.stringify({text:entry.value, genre: genreSel.value}));
 });
 
 $('#saveDraft').addEventListener('click',()=>{
-  localStorage.setItem('writequest:draft', JSON.stringify({text:entry.value, genre: (['分析','影評','日記'].includes(genreSel.value)?'隨筆':genreSel.value)}));
+  localStorage.setItem('writequest:draft', JSON.stringify({text:entry.value, genre: genreSel.value}));
   toast('已暫存');
 });
 const draftRaw = localStorage.getItem('writequest:draft');
@@ -274,7 +274,8 @@ $('#submit').addEventListener('click',()=>{
   if(already){ if(!confirm('今天已提交，覆蓋嗎？')) return; }
 
   // Save entry
-  S.entries[date] = {text, words, genre: (['分析','影評','日記'].includes(genreSel.value)?'隨筆':genreSel.value), ts: Date.now()};
+  const safeGenre = (['分析','影評','日記'].includes(genreSel.value)?'隨筆':genreSel.value);
+  S.entries[date] = {text, words, genre: safeGenre, ts: Date.now()};
   S.totalWords += words - (already? already.words: 0);
 
   // XP: 10 per 100 chars, daily bonus 30 if >=150
@@ -285,7 +286,7 @@ $('#submit').addEventListener('click',()=>{
   // streak
   updateStreak(date);
 
-  // badges expanded
+  // badges (expanded)
   if(Object.keys(S.entries).length===1) award('firstPost');
   if(words>=500) award('words500');
   if(words>=1000) award('long1000');
@@ -293,16 +294,17 @@ $('#submit').addEventListener('click',()=>{
   if(S.streak>=7) award('streak7');
   if(S.streak>=14) award('streak14');
   if(S.streak>=30) award('streak30');
-  // first genre
-  const prev=Object.values(S.entries).filter(e=>e!==S.entries[date]);
-  if(!prev.some(e=>e.genre===genreSel.value)){
-    if(genreSel.value==='詩') award('firstPoem');
-    if(genreSel.value==='劇本') award('firstScript');
-    if(genreSel.value==='大綱') award('firstOutline');
+  // first-by-genre
+  const prev = Object.values(S.entries).filter(e=>e!==S.entries[date]);
+  if(!prev.some(e=>e.genre===safeGenre)){
+    if(safeGenre==='詩') award('firstPoem');
+    if(safeGenre==='劇本') award('firstScript');
+    if(safeGenre==='大綱') award('firstOutline');
   }
+  // time-based
   const hour=new Date().getHours();
-  if(hour>=5&&hour<7) award('earlyBird');
-  if(hour>=23||hour<2) award('nightOwl');
+  if(hour>=5 && hour<7) award('earlyBird');
+  if(hour>=23 || hour<2) award('nightOwl');
 
   // genres diversity per month
   const monthKey = date.slice(0,7);
@@ -381,10 +383,10 @@ function render(){
     el.style.opacity = owned?1:0.35;
     el.textContent = (owned?'🏅 ':'🔒 ') + badgeMeta[code].name;
     el.title = badgeMeta[code].desc;
-    el.style.cursor = 'pointer';
+    el.style.cursor='pointer';
     el.addEventListener('click',()=>{
-      const meta=badgeMeta[code];
-      const date=S.badges[code]? new Date(S.badges[code]).toLocaleString():'—';
+      const meta = badgeMeta[code];
+      const date = S.badges[code]? new Date(S.badges[code]).toLocaleString():'—';
       alert(`${meta.name}\n\n狀態：${owned?'已解鎖':'尚未解鎖'}\n解鎖方式：${meta.how||meta.desc}\n解鎖日期：${date}`);
     });
     box.appendChild(el);
@@ -419,7 +421,7 @@ function toast(msg){
   setTimeout(()=>div.remove(),1800);
 }
 render();
-// migrate old badges
+// migrate old badges array -> object with dates
 if(Array.isArray(S.badges)){ const o={}; const now=new Date().toISOString(); S.badges.forEach(c=>o[c]=now); S.badges=o; save(); }
 
 // PWA
