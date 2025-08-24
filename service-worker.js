@@ -1,4 +1,4 @@
-const CACHE_NAME = 'writequest-v1';
+const CACHE_NAME = 'writequest-v2';
 const ASSETS = [
   './index.html',
   './manifest.webmanifest',
